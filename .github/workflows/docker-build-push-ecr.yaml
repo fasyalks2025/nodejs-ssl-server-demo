@@ -2,9 +2,23 @@ name: Build and Push docker to ECR
 on:
   push:
     branch: [master]
+    paths-ignore: 
+      - 'docs/**'
 
 jobs:
+  check_secret:
+    name: Check if secrets and vars are provided
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required inputs
+        run: |
+          test -n "${{ secrets.AWS_ACCESS_KEY_ID }}" || { echo "::error::AWS_ACCESS_KEY_ID"; exit 1; }
+          test -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" || { echo "::error::Missing AWS_SECRET_ACCESS_KEY"; exit 1; }
+          test -n "${{ vars.AWS_REGION }}" || { echo "::error::Missing AWS_REGION"; exit 1; }
+
+
   build:
+    needs: check_secret
     name: Build
     runs-on: ubuntu-latest
 
@@ -17,7 +31,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to AWS ECR
         id: login-ecr
